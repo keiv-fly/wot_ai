@@ -1,3 +1,5 @@
+import numpy as np
+
 def red_diff(img):
     r = img[:, :, 2].astype(np.uint16)
     g = img[:, :, 1].astype(np.int32)
