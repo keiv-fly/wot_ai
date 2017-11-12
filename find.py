@@ -16,7 +16,14 @@ l_matches = list(zip(*l_matches))
 
 df_files["n_light_red"] = l_matches[0]
 df_files["n_medium_red"] = l_matches[1]
-df_files["n_classI"] = l_matches[2]
+df_files["red"] = l_matches[2]
+df_files["white"] = l_matches[3]
+df_files["black"] = l_matches[4]
+df_files["red_bw"] = l_matches[5]
+
+pd.set_option('display.max_rows', 500)
+pd.set_option('display.width', 180)
+df_files
 
 
 threshold=0.20
