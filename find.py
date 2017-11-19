@@ -76,7 +76,7 @@ pd.set_option('display.max_rows', 500)
 pd.set_option('display.width', 180)
 df_files
 
-df_files.to_csv("match.csv")
+df_files.to_csv("tests/match.csv", index=False)
 
 
 threshold=0.20
