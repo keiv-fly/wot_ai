@@ -93,21 +93,13 @@ def get_num_of_enemy_parallel(img, pool):
 
     templates = (template1, template2)
     res_matchs = pool.starmap(cv2.matchTemplate, zip(repeat(img_grey), templates, repeat(cv2.TM_SQDIFF_NORMED)))
-    # res_match1 = cv2.matchTemplate(img_grey, template1, cv2.TM_SQDIFF_NORMED)
-    # res_match2 = cv2.matchTemplate(img_grey, template2, cv2.TM_SQDIFF_NORMED)
-    #locs = (np.argwhere(np.swapaxes(res_match,0,1) <= threshold) for res_match in res_matchs)
-    locs = [l_cy.locs_cy(res_match,threshold) for res_match in res_matchs]
-    #loc1, loc2 = (list(zip(*x[::-1])) for x in locs)
 
-    loc = locs[0] + locs[1]
+    #locs = [l_cy.locs_cy(res_match,threshold) for res_match in res_matchs]
+    locs = pool.starmap(l_cy.locs_cy,zip(res_matchs, repeat(threshold)))
+
+    loc = np.concatenate((locs[0], locs[1]))
+    loc = [tuple(x) for x in loc]
     loc = list(set(loc))
-
-    # locs = list(np.argwhere(res_match <= threshold)[:,[1,0]] for res_match in res_matchs)
-    # #loc1, loc2 = (list(zip(*x[::-1])) for x in locs)
-    #
-    # loc = np.concatenate((locs[0], locs[1]))
-    # if len(loc)>1:
-    #     loc = remove_duplicates(loc)
 
     if len(loc) > 0:
         loc = np.array(loc)
