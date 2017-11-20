@@ -96,6 +96,7 @@ def get_num_of_enemy_parallel(img, pool):
 
     #locs = [l_cy.locs_cy(res_match,threshold) for res_match in res_matchs]
     locs = pool.starmap(l_cy.locs_cy,zip(res_matchs, repeat(threshold)))
+    #locs = pool.starmap(locs_py, zip(res_matchs, repeat(threshold)))
 
     loc = np.concatenate((locs[0], locs[1]))
     loc = [tuple(x) for x in loc]
@@ -356,6 +357,11 @@ def remove_close(loc):
         if len(loc) == 0:
             break
     return loc_filtered
+
+def locs_py(res_match,threshold):
+    loc = np.where(res_match <= threshold)
+    loc = list(zip(*loc[::-1]))
+    return loc
 
 
 #remove_close_jit = numba.jit(remove_close)

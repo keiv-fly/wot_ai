@@ -2,6 +2,7 @@ import numpy as np
 cimport numpy as np
 cimport cython
 from libc.stdlib cimport malloc, free
+from cython.view cimport array as cvarray
 
 cdef extern from "locs_cy.h":
     ctypedef struct node_t:
@@ -9,21 +10,23 @@ cdef extern from "locs_cy.h":
         int j
         node_t* next
 
-#@cython.boundscheck(False)
-#@cython.wraparound(False)
-#@cython.nonecheck(False)
-def locs_cy(np.ndarray[np.float32_t, ndim=2] m_img, double threshold):
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.nonecheck(False)
+def locs_cy(float[:,:] m_img, double threshold):
 
 
     #res = []
-    cdef int i,j,k,ni,nk
+    cdef int i,j,k,ni,nk, res_size, i1
     #cdef np.ndarray[np.int, ndim=1] item
-    cdef np.ndarray[np.int_t, ndim=2] res
+    cdef int* res
+    cdef int* temp
+    cdef int[:,:] res2
 
-    cdef node_t* l_head = <node_t*>malloc(sizeof(node_t))
-    cdef node_t* l_item = l_head
-    cdef node_t* l_temp = NULL
-    item = np.empty((2,), dtype = np.int)
+    #item = np.empty((2,), dtype = np.int)
+    res_size = 100
+    res = <int*> malloc(sizeof(int) * res_size *2)
+    temp = <int*> malloc(sizeof(int) * res_size *2)
     ni = m_img.shape[0]
     nk = m_img.shape[1]
     k=0
@@ -31,16 +34,27 @@ def locs_cy(np.ndarray[np.float32_t, ndim=2] m_img, double threshold):
         for i in range(ni):
             for j in range(nk):
                 if m_img[i,j] < threshold:
-                    l_item.i = j
-                    l_item.j = i
-                    l_temp = <node_t*>malloc(sizeof(node_t))
-                    l_item.next = l_temp
-                    l_item = l_temp
+                    res[0 + k*2] = j
+                    res[1 + k*2] = i
                     k=k+1
-    res = np.empty((k,2), np.int)
-    l_item = l_head
-    for i in range(k):
-        res[i] = (l_item.i, l_item.j)
-        l_item = l_item.next
+                    if k>= res_size:
+                        free(temp)
+                        temp = res
+                        res_size = k*2
+                        free(res)
+                        res = <int*> malloc(sizeof(int) * k*2 *2)
+                        for i1 in range(res_size):
+                            res[0 + i1*2] = temp[0 + i1*2]
+                            res[1 + i1*2] = temp[1 + i1*2]
+                        res_size = k*2
 
-    return res
+
+    free(temp)
+    if k > 0:
+        res2 = <int[:k,:2]> res
+        res2 = np.asarray(res2)
+    else:
+        res2 = np.empty((0,2),dtype=int)
+    free(res)
+
+    return res2
