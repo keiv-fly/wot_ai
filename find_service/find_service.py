@@ -246,9 +246,9 @@ def get_num_of_enemy_parallel(img, pool):
     _ = cv2.rectangle(img_grey, (1800, 1000), (1920, 1090), (0, 0, 0), -1)
     _ = cv2.rectangle(img_grey, (750, 1048), (1385, 1090), (0, 0, 0), -1)
 
-    templates = (template1, template2)
-    img_grey1 = img_grey[:970, :]
-    img_grey2 = img_grey[950:, :]
+    #templates = (template1, template2)
+    img_grey1 = img_grey[:, :970]
+    img_grey2 = img_grey[:,950:]
     #imgs = [img_grey1]*2 + [img_grey2] *2
     pars = list(zip(
         [img_grey1] * 2 + [img_grey2] * 2,
@@ -260,10 +260,9 @@ def get_num_of_enemy_parallel(img, pool):
     locs = pool.starmap(l_cy.locs_cy,zip(res_matchs, repeat(threshold)))
     locs = [np.array(x) for x in locs]
     for i, loc in enumerate(locs):
-        loc = np.array(loc)
         if i>=2 and loc.shape[0]>0:
             for j, loc_j in enumerate(loc):
-                locs[i][j, 1] = loc_j[1]+950
+                locs[i][j, 0] = loc_j[0]+950
 
 
 
@@ -335,7 +334,7 @@ def get_num_of_enemy_parallel(img, pool):
         i = 2
         for i in range(len(b_w)):
             if loc_npa[i, 1] + 46 > img.shape[0] or (loc_npa[i, 0] - 41 + w) < 0:
-                colors_list.append((1000, 1000, 1000))
+                colors_bw_list.append((1000, 1000, 1000))
                 continue
             t1 = img[:, :, 2][(loc_npa[i, 1] + 46):(loc_npa[i, 1] + 46 + 14),
                  (loc_npa[i, 0] - 41):(loc_npa[i, 0] - 41 + w)]
@@ -365,7 +364,7 @@ def get_num_of_enemy_parallel(img, pool):
         i = 0
         for i in range(len(other_npa)):
             if loc_npa[i, 1] + 46 > img.shape[0] or (loc_npa[i, 0] - 41 + w) < 0:
-                colors_list.append((1000, 1000, 1000))
+                colors_other_list.append((1000, 1000, 1000))
                 continue
             t1 = img[:, :, 2][(loc_npa[i, 1] + 46):(loc_npa[i, 1] + 46 + 14),
                  (loc_npa[i, 0] - 41):(loc_npa[i, 0] - 41 + w)]
