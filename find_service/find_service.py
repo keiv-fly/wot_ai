@@ -92,7 +92,7 @@ def loop_body2(sock,pool):
 
 
 
-def get_num_of_enemy_parallel(img, pool):
+def get_num_of_enemy_parallel_old(img, pool):
     threshold = 0.10
     template1 = cv2.imread('../signs/sign_I_2.png', 0)
     template2 = cv2.imread('../signs/sign_I_3.png', 0)
@@ -230,7 +230,7 @@ def get_num_of_enemy_parallel(img, pool):
 
     return len(loc_red), len(loc_white), len(loc_black), len(loc_red_bw), len(loc_red_other)
 
-def get_num_of_enemy_parallel2(img, pool):
+def get_num_of_enemy_parallel(img, pool):
     threshold = 0.10
     template1 = cv2.imread('../signs/sign_I_2.png', 0)
     template2 = cv2.imread('../signs/sign_I_3.png', 0)
@@ -366,6 +366,167 @@ def get_num_of_enemy_parallel2(img, pool):
         for i in range(len(other_npa)):
             if loc_npa[i, 1] + 46 > img.shape[0] or (loc_npa[i, 0] - 41 + w) < 0:
                 colors_list.append((1000, 1000, 1000))
+                continue
+            t1 = img[:, :, 2][(loc_npa[i, 1] + 46):(loc_npa[i, 1] + 46 + 14),
+                 (loc_npa[i, 0] - 41):(loc_npa[i, 0] - 41 + w)]
+            if t1.size == 0:
+                colors_other_list.append((1000, 1000, 1000))
+                continue
+            r = np.median(t1)
+            g = np.median(
+                img[:, :, 1][(loc_npa[i, 1] + 46):(loc_npa[i, 1] + 46 + 14),
+                (loc_npa[i, 0] - 41):(loc_npa[i, 0] - 41 + w)]
+            )
+            b = np.median(
+                img[:, :, 0][(loc_npa[i, 1] + 46):(loc_npa[i, 1] + 46 + 14),
+                (loc_npa[i, 0] - 41):(loc_npa[i, 0] - 41 + w)]
+            )
+            colors_other_list.append((r, g, b))
+        if len(colors_other_list) > 0:
+            red = (200, 0, 10)
+            t1 = np.array(colors_other_list) - red
+            mask = ~np.isnan(t1).any(axis=1)
+            loc_npa = loc_npa[mask]
+            t1 = t1[mask]
+            loc_red_other = loc_npa[np.sum(np.power(t1, 2), axis=1) < 3000]
+
+    return len(loc_red), len(loc_white), len(loc_black), len(loc_red_bw), len(loc_red_other)
+
+def get_num_of_enemy_parallel2(img, pool):
+    threshold = 0.10
+    template1 = cv2.imread('../signs/sign_I_2.png', 0)
+    template2 = cv2.imread('../signs/sign_I_3.png', 0)
+
+    w, h = template1.shape[::-1]
+    #img_grey = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    #img_grey = (0.299*img[:,:,2]+0.587*img[:,:,1]+0.114*img[:,:,0]).astype(np.uint8)
+    img_grey = gc_cy.gray_conv(img)
+    _ = cv2.rectangle(img_grey, (0, 720), (368, 1090), (0, 0, 0), -1)
+    _ = cv2.rectangle(img_grey, (690, 0), (1228, 36), (0, 0, 0), -1)
+    _ = cv2.rectangle(img_grey, (0, 0), (68, 274), (0, 0, 0), -1)
+    _ = cv2.rectangle(img_grey, (1854, 0), (1920, 274), (0, 0, 0), -1)
+    _ = cv2.rectangle(img_grey, (1800, 1000), (1920, 1090), (0, 0, 0), -1)
+    _ = cv2.rectangle(img_grey, (750, 1048), (1385, 1090), (0, 0, 0), -1)
+
+    #templates = (template1, template2)
+    img_grey1 = img_grey[:, :970]
+    img_grey2 = img_grey[:,950:]
+    #imgs = [img_grey1]*2 + [img_grey2] *2
+    pars = list(zip(
+        [img_grey1] * 2 + [img_grey2] * 2,
+        [template1, template2]*2,
+        repeat(cv2.TM_SQDIFF_NORMED)
+    ))
+    res_matchs = pool.starmap(cv2.matchTemplate, pars)
+
+    locs = pool.starmap(l_cy.locs_cy,zip(res_matchs, repeat(threshold)))
+    locs = [np.array(x) for x in locs]
+    for i, loc in enumerate(locs):
+        if i>=2 and loc.shape[0]>0:
+            for j, loc_j in enumerate(loc):
+                locs[i][j, 0] = loc_j[0]+950
+
+
+
+    loc = np.concatenate(locs)
+    loc = [tuple(x) for x in loc]
+    loc = list(set(loc))
+
+    if len(loc) > 0:
+        loc = np.array(loc).astype(dtype=np.int32)
+        #loc = remove_close(loc)
+        loc = fc_cy.remove_close(loc)
+    else:
+        loc = np.array([])
+
+    loc_npa = np.array(loc)
+
+    loc_red = []
+    loc_white = []
+    loc_black = []
+    loc_red_bw = []
+    loc_red_other = []
+
+    if len(loc) > 0:
+        colors_list = []
+
+        i = 0
+        for i in range(len(loc)):
+            if loc_npa[i, 1] + 73 > img.shape[0] or (loc_npa[i, 0] + w) > img.shape[1]:
+                colors_list.append((1000, 1000, 1000))
+                continue
+            t1 = img[:, :, 2][(loc_npa[i, 1] + 73):(loc_npa[i, 1] + 91), loc_npa[i, 0]:(loc_npa[i, 0] + w)]
+
+            if len(t1) == 0:
+                colors_list.append((1000, 1000, 1000))
+                continue
+            r = np.median(t1)
+            g = np.median(
+                img[:, :, 1][(loc_npa[i, 1] + 73):(loc_npa[i, 1] + 91), loc_npa[i, 0]:(loc_npa[i, 0] + w)]
+            )
+            b = np.median(
+                img[:, :, 0][(loc_npa[i, 1] + 73):(loc_npa[i, 1] + 91), loc_npa[i, 0]:(loc_npa[i, 0] + w)]
+            )
+            colors_list.append((r, g, b))
+        good_colors = np.array(((200, 0, 10), (229, 229, 226)))
+
+        red = (200, 0, 10)
+        t1 = np.array(colors_list) - red
+        mask1 = np.sum(np.power(t1, 2), axis=1) < 3000
+        if np.isnan(t1).any():
+            x=1
+        loc_red = loc_npa[mask1]
+
+        white = (229, 229, 226)
+        t1 = np.array(colors_list) - white
+        mask2 = np.sum(np.power(t1, 2), axis=1) < 3000
+        loc_white = loc_npa[mask2]
+
+        black = (4, 2, 3)
+        t1 = np.array(colors_list) - black
+        mask3 = np.sum(np.power(t1, 2), axis=1) < 3000
+        loc_black = loc_npa[mask3]
+
+        other_npa = loc_npa[~mask1 & ~mask2 & ~mask3].copy()
+
+        b_w = np.concatenate((loc_white, loc_black))
+        colors_bw_list = []
+
+        loc_npa = b_w
+        i = 2
+        for i in range(len(b_w)):
+            if loc_npa[i, 1] + 46 > img.shape[0] or (loc_npa[i, 0] - 41 + w) < 0:
+                colors_bw_list.append((1000, 1000, 1000))
+                continue
+            t1 = img[:, :, 2][(loc_npa[i, 1] + 46):(loc_npa[i, 1] + 46 + 14),
+                 (loc_npa[i, 0] - 41):(loc_npa[i, 0] - 41 + w)]
+            if t1.size == 0:
+                colors_bw_list.append((1000, 1000, 1000))
+                continue
+            r = np.median(t1)
+            g = np.median(
+                img[:, :, 1][(loc_npa[i, 1] + 46):(loc_npa[i, 1] + 46 + 14),
+                (loc_npa[i, 0] - 41):(loc_npa[i, 0] - 41 + w)]
+            )
+            b = np.median(
+                img[:, :, 0][(loc_npa[i, 1] + 46):(loc_npa[i, 1] + 46 + 14),
+                (loc_npa[i, 0] - 41):(loc_npa[i, 0] - 41 + w)]
+            )
+            colors_bw_list.append((r, g, b))
+        if len(colors_bw_list) > 0:
+            red = (200, 0, 10)
+            t1 = np.array(colors_bw_list) - red
+            mask = ~np.isnan(t1).any(axis=1)
+            loc_npa = loc_npa[mask]
+            t1 = t1[mask]
+            loc_red_bw = loc_npa[np.sum(np.power(t1, 2), axis=1) < 3000]
+
+        colors_other_list = []
+        loc_npa = other_npa
+        i = 0
+        for i in range(len(other_npa)):
+            if loc_npa[i, 1] + 46 > img.shape[0] or (loc_npa[i, 0] - 41 + w) < 0:
+                colors_other_list.append((1000, 1000, 1000))
                 continue
             t1 = img[:, :, 2][(loc_npa[i, 1] + 46):(loc_npa[i, 1] + 46 + 14),
                  (loc_npa[i, 0] - 41):(loc_npa[i, 0] - 41 + w)]

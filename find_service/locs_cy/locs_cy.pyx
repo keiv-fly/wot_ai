@@ -29,6 +29,9 @@ def locs_cy(float[:,:] m_img, double threshold):
     temp = <int*> malloc(sizeof(int) * res_size *2)
     ni = m_img.shape[0]
     nk = m_img.shape[1]
+    #print(m_img.shape)
+    #print(ni)
+    #print(nk)
     k=0
     with nogil:
         for i in range(ni):

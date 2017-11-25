@@ -124,7 +124,7 @@ class TestFind_service(TestCase):
         filename = '../scenes/102.png'
         # res = send_pic_file(filename)
         img = cv2.imread(filename, 1)
-        pool = ThreadPool(2)
+        pool = ThreadPool(4)
         res = find_service.get_num_of_enemy_parallel(img,pool)
         self.assertEquals(res, (2, 0, 0, 0, 0))
 
@@ -140,7 +140,7 @@ class TestFind_service(TestCase):
         filename = '../scenes/102.png'
         # res = send_pic_file(filename)
         img = cv2.imread(filename, 1)
-        pool = ThreadPool(2)
+        pool = ThreadPool(4)
         lp = LineProfiler()
         lp_wrapper = lp(find_service.get_num_of_enemy_parallel)
         res = lp_wrapper(img,pool)
@@ -165,7 +165,7 @@ class TestFind_service(TestCase):
         for filename in df_files["fullname"]:
             filename = "../" + filename
             l_imgs.append(cv2.imread(filename, 1))
-        pool = ThreadPool(2)
+        pool = ThreadPool(4)
         l_times = []
         l_matches = []
         start_time_all = time.time()
