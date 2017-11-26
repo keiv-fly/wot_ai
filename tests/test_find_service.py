@@ -136,6 +136,22 @@ class TestFind_service(TestCase):
         res = find_service.get_num_of_enemy_parallel2(img,pool)
         self.assertEquals(res, (2, 0, 0, 0, 0))
 
+    def test_01_pic2(self):
+        filename = '../scenes/scene00751.png'
+        # res = send_pic_file(filename)
+        img = cv2.imread(filename, 1)
+        pool = ThreadPool(4)
+        res = find_service.get_num_of_enemy_parallel(img,pool)
+        self.assertEquals(res, (0, 0, 0, 0, 0))
+
+    def test_01_pic2_v2(self):
+        filename = '../scenes/scene00751.png'
+        # res = send_pic_file(filename)
+        img = cv2.imread(filename, 1)
+        pool = ThreadPool(4)
+        res = find_service.get_num_of_enemy_parallel2(img,pool)
+        self.assertEquals(res, (0, 0, 0, 0, 0))
+
     def test_02_pic1_prof(self):
         filename = '../scenes/102.png'
         # res = send_pic_file(filename)

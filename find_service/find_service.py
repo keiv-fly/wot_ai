@@ -13,6 +13,8 @@ import io
 import find_service.find_close_cy.find_close_cy as fc_cy
 import find_service.gray_conv_cy.gray_conv_cy as gc_cy
 import find_service.locs_cy.locs_cy as l_cy
+import find_service.white_in_part_cy.white_in_part_cy as wip_cy
+import hashlib
 
 m.patch()
 
@@ -407,29 +409,51 @@ def get_num_of_enemy_parallel2(img, pool):
     _ = cv2.rectangle(img_grey, (1800, 1000), (1920, 1090), (0, 0, 0), -1)
     _ = cv2.rectangle(img_grey, (750, 1048), (1385, 1090), (0, 0, 0), -1)
 
+
+    #l_parts = white_in_part_py(img_grey, 252)
+    l_parts = wip_cy.white_in_part_cy(img_grey, 252)
+    l_parts = tuple(map(tuple,l_parts))
+
+    img_parts = []
+    ni = img_grey.shape[0]//10
+    nj = img_grey.shape[1]//10
+    for part in l_parts:
+        img_parts.append(img_grey[np.maximum(part[0]*ni-14,0):(part[0]+1)*ni+14, np.maximum(part[1]*nj-14,0):(part[1]+1)*nj+14])
     #templates = (template1, template2)
-    img_grey1 = img_grey[:, :970]
-    img_grey2 = img_grey[:,950:]
+    #img_grey1 = img_grey[:, :970]
+    #img_grey2 = img_grey[:,950:]
     #imgs = [img_grey1]*2 + [img_grey2] *2
     pars = list(zip(
-        [img_grey1] * 2 + [img_grey2] * 2,
-        [template1, template2]*2,
+        (x for x in img_parts for i in range(2)),
+        [template1, template2]*len(img_parts),
         repeat(cv2.TM_SQDIFF_NORMED)
     ))
+
     res_matchs = pool.starmap(cv2.matchTemplate, pars)
 
-    locs = pool.starmap(l_cy.locs_cy,zip(res_matchs, repeat(threshold)))
+    res_matchs2=[np.array(x).copy() for x in res_matchs]
+
+
+
+    locs = pool.starmap(l_cy.locs_cy,zip(res_matchs2, repeat(threshold)))
     locs = [np.array(x) for x in locs]
+    #print(hashlib.md5(str(locs).encode()).hexdigest())
+    #print(locs)
     for i, loc in enumerate(locs):
-        if i>=2 and loc.shape[0]>0:
+        if loc.shape[0]>0:
             for j, loc_j in enumerate(loc):
-                locs[i][j, 0] = loc_j[0]+950
+                locs[i][j, 0] = loc_j[0] + np.maximum(l_parts[i//2][1] * nj-14,0)
+                locs[i][j, 1] = loc_j[1] + np.maximum(l_parts[i//2][0] * ni-14,0)
+
 
 
 
     loc = np.concatenate(locs)
+    #print(loc)
     loc = [tuple(x) for x in loc]
+
     loc = list(set(loc))
+
 
     if len(loc) > 0:
         loc = np.array(loc).astype(dtype=np.int32)
@@ -707,8 +731,27 @@ def locs_py(res_match,threshold):
         loc = np.array(loc)
     return loc
 
+def white_in_part_py(img, threshold = 252):
+    ni = img.shape[0]//10
+    nj = img.shape[1]//10
+    res_ij = False
 
-#remove_close_jit = numba.jit(remove_close)
+    l_sq = []
+    for i in range(10):
+        for j in range(10):
+            res_ij = False
+            for ii in range(ni):
+                if not res_ij:
+                    for jj in range(nj):
+                        if img[i*ni+ii, j*nj+jj] > threshold:
+                            res_ij = True
+                            l_sq.append((i, j))
+                            break
+                else:
+                    break
+    return l_sq
+
+
 
 if __name__ == "__main__":
     main()
